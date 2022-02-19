@@ -10,7 +10,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v2

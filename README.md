@@ -33,16 +33,24 @@ the plugin with goreleaser. Register the asset with [Bonsai][8] to share it with
 # BetterUptime
 
 ## Table of Contents
-- [Overview](#overview)
-- [Files](#files)
-- [Usage examples](#usage-examples)
-- [Configuration](#configuration)
-  - [Asset registration](#asset-registration)
-  - [Handler definition](#handler-definition)
-  - [Annotations](#annotations)
-- [Installation from source](#installation-from-source)
-- [Additional notes](#additional-notes)
-- [Contributing](#contributing)
+- [Handler Plugin Template](#handler-plugin-template)
+  - [Overview](#overview)
+  - [Functionality](#functionality)
+  - [Releases with Github Actions](#releases-with-github-actions)
+- [BetterUptime](#betteruptime)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview-1)
+  - [Files](#files)
+  - [Usage examples](#usage-examples)
+  - [Configuration](#configuration)
+    - [Asset registration](#asset-registration)
+    - [Handler definition](#handler-definition)
+      - [Proxy Support](#proxy-support)
+    - [Annotations](#annotations)
+      - [Examples](#examples)
+  - [Installation from source](#installation-from-source)
+  - [Additional notes](#additional-notes)
+  - [Contributing](#contributing)
 
 ## Overview
 
@@ -126,7 +134,7 @@ go build
 For more information about contributing to this plugin, see [Contributing][1].
 
 [1]: https://github.com/sensu/sensu-go/blob/master/CONTRIBUTING.md
-[2]: https://github.com/sensu-community/sensu-plugin-sdk
+[2]: https://github.com/sensu/sensu-plugin-sdk
 [3]: https://github.com/sensu-plugins/community/blob/master/PLUGIN_STYLEGUIDE.md
 [4]: https://github.com/sensu-community/handler-plugin-template/blob/master/.github/workflows/release.yml
 [5]: https://github.com/sensu-community/handler-plugin-template/actions
