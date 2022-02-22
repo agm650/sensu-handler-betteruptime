@@ -3,6 +3,7 @@ module github.com/agm650/sensu-handler-betteruptime
 go 1.17
 
 require (
+	github.com/apex/log v1.9.0
 	github.com/sensu/sensu-go/types v0.8.1
 	github.com/sensu/sensu-plugin-sdk v0.15.0
 )
@@ -23,6 +24,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sensu/sensu-go/api/core/v2 v2.13.0 // indirect
