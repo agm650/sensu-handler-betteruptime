@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/apex/log"
@@ -71,64 +72,84 @@ func executeHandler(event *types.Event) error {
 		"function": "executeHandler",
 	})
 
-	var event_name string
-	var summary string
-	var description string
-	var email string
+	var incident Incident
+	incident.Email = true
+	incident.Push = true
+	incident.Call = false
+	incident.TeamWait = 1
 
 	ctx.Warnf("executing handler with --token %s", plugin.Token)
 
 	if len(event.Entity.Annotations["betteruptime/config/name"]) > 0 {
-		event_name = event.Entity.Annotations["betteruptime/config/name"]
+		incident.Name = event.Entity.Annotations["betteruptime/config/name"]
 	} else if len(event.Check.Annotations["betteruptime/config/name"]) > 0 {
-		event_name = event.Check.Annotations["betteruptime/config/name"]
+		incident.Name = event.Check.Annotations["betteruptime/config/name"]
 	} else {
-		event_name = event.Entity.Name
+		incident.Name = event.Entity.Name + " - " + event.Check.Name
 	}
 
 	if len(event.Check.Annotations["betteruptime/config/summary"]) > 0 {
-		summary = event.Check.Annotations["betteruptime/config/summary"]
+		incident.Summary = event.Check.Annotations["betteruptime/config/summary"]
 	} else {
-		summary = event.Check.Name
+		incident.Summary = event.Check.Name
 	}
 
 	if len(event.Check.Annotations["betteruptime/config/description"]) > 0 {
-		description = event.Check.Annotations["betteruptime/config/description"]
+		incident.Description = event.Check.Annotations["betteruptime/config/description"]
 	} else {
-		description = fmt.Sprintf("Trouble with %s for entity %s", event.Check.Name, event.Entity.Name)
+		incident.Description = event.Check.Output
 	}
 
 	if len(event.Check.Annotations["betteruptime/config/email"]) > 0 {
-		email = event.Check.Annotations["betteruptime/config/email"]
+		incident.Requester_email = event.Check.Annotations["betteruptime/config/email"]
 	} else {
-		email = "my-great-email@example.com"
+		incident.Requester_email = "my-great-email@example.com"
 	}
 
-	err := createIncident(plugin.URL, plugin.Token, event_name, email, summary, description, true, true)
+	if len(event.Check.Annotations["betteruptime/config/sendpush"]) > 0 {
+		incident.Push = true
+	} else {
+		incident.Push = false
+	}
+
+	if len(event.Check.Annotations["betteruptime/config/sendmail"]) > 0 {
+		incident.Email = true
+	} else {
+		incident.Email = false
+	}
+
+	if len(event.Check.Annotations["betteruptime/config/call"]) > 0 {
+		incident.Call = true
+	} else {
+		incident.Call = false
+	}
+
+	if len(event.Check.Annotations["betteruptime/config/teamwait"]) > 0 {
+		val, err := strconv.Atoi(event.Check.Annotations["betteruptime/config/teamwait"])
+		if err != nil {
+			incident.TeamWait = 0
+		} else {
+			incident.TeamWait = val
+		}
+	} else {
+		incident.TeamWait = 0
+	}
+
+	err := createIncident(plugin.URL, plugin.Token, incident)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func createIncident(urlIncident string, token string, name string, email string, summary string, description string, sendEmail bool, sendPush bool) error {
+func createIncident(urlIncident string, token string, incident Incident) error {
 	ctx := log.WithFields(log.Fields{
 		"file":     "main.go",
 		"function": "createIncident",
 	})
 
 	var method string = "POST"
-	var incident Incident
 	var incidentReply ServerIncident
-
-	incident.Name = name
-	incident.Summary = summary
-	incident.Description = description
-	incident.Requester_email = email
-	incident.Email = sendEmail
-	incident.Push = sendPush
-	incident.Call = false
-	incident.TeamWait = 1
 
 	incidentJSON, err := json.Marshal(incident)
 	if err != nil {
