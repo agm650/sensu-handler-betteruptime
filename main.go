@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/apex/log"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/sensu/sensu-go/types"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
@@ -32,8 +34,8 @@ var (
 		},
 	}
 
-	options = []*sensu.PluginConfigOption{
-		&sensu.PluginConfigOption{
+	options = []sensu.ConfigOption{
+		&sensu.PluginConfigOption[string]{
 			Path:      "apitoken",
 			Env:       "BETTER_UPTIME_TOKEN",
 			Argument:  "token",
@@ -42,7 +44,7 @@ var (
 			Usage:     "API Token for BetterUptime",
 			Value:     &plugin.Token,
 		},
-		&sensu.PluginConfigOption{
+		&sensu.PluginConfigOption[string]{
 			Path:      "url",
 			Env:       "BETTER_UPTIME_URL",
 			Argument:  "url",
@@ -135,10 +137,18 @@ func executeHandler(event *types.Event) error {
 		incident.TeamWait = 0
 	}
 
-	err := createIncident(plugin.URL, plugin.Token, incident)
-	if err != nil {
-		return err
+	if event.Check.Status == 2 {
+		err := createIncident(plugin.URL, plugin.Token, incident)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := resolveIncident(plugin.URL, plugin.Token, incident)
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
@@ -195,6 +205,120 @@ func createIncident(urlIncident string, token string, incident Incident) error {
 	ctx.Infof("incident %d created", incidentReply.Data.Id)
 
 	return nil
+}
+
+func resolveIncident(urlIncident string, token string, incident Incident) error {
+	ctx := log.WithFields(log.Fields{
+		"file":     "main.go",
+		"function": "resolveIncident",
+	})
+
+	var method string = "POST"
+	var incidentReply ServerIncident
+
+	incidentJSON, err := json.Marshal(incident)
+	if err != nil {
+		return err
+	}
+
+	reqURL, err := url.Parse(urlIncident)
+	if err != nil {
+		return err
+	}
+
+	client := &http.Client{}
+
+	var resp *http.Response
+	req, err := http.NewRequest(method, reqURL.String(), bytes.NewBuffer(incidentJSON))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	resp, err = client.Do(req)
+
+	if err != nil {
+		return err
+	}
+	ctx.Warnf("Incident creation return code: %d", resp.StatusCode)
+	if resp.StatusCode != 201 {
+		return fmt.Errorf("incident not created. Error code %d", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(body, &incidentReply)
+	if err != nil {
+		return err
+	}
+
+	ctx.Infof("incident %d created", incidentReply.Data.Id)
+
+	return nil
+}
+
+func getIncidents(urlIncident string, token string) ([]Incident, error) {
+	ctx := log.WithFields(log.Fields{
+		"file":     "main.go",
+		"function": "getIncidents",
+	})
+
+	var method string = "POST"
+
+	reqURL, err := url.Parse(urlIncident)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+
+	var resp *http.Response
+	req, err := http.NewRequest(method, reqURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	resp, err = client.Do(req)
+
+	rawData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		// fmt.Println("Error with the API Request")
+		return nil, err
+	}
+	incidents, err := ExtractIncidents(rawData)
+	if err != nil {
+		return nil, err
+	}
+	ctx.Infof("retrived %d incidents", len(incidents))
+
+	return incidents, nil
+}
+
+func ExtractIncidents(data []byte) ([]Incident, error) {
+	ctx := log.WithFields(log.Fields{
+		"file":     "main.go",
+		"function": "ExtractIncidents",
+	})
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+	var incidents []Incident
+
+	err := json.Unmarshal(data, &incidents)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.Warnf("Extrating %d events", len(incidents))
+
+	return incidents, nil
 }
 
 type Incident struct {
