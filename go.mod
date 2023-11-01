@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/apex/log v1.9.0
 	github.com/json-iterator/go v1.1.12
-	github.com/sensu/sensu-go/api/core/v2 v2.16.0
 	github.com/sensu/sensu-go/types v0.12.0
 	github.com/sensu/sensu-plugin-sdk v0.18.0
 )
