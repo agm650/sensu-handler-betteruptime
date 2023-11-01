@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -192,7 +191,7 @@ func createIncident(urlIncident string, token string, incident Incident) error {
 		return fmt.Errorf("incident not created. Error code %d", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -247,7 +246,7 @@ func resolveIncident(urlIncident string, token string, incident Incident) error 
 		return fmt.Errorf("incident not created. Error code %d", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -262,6 +261,7 @@ func resolveIncident(urlIncident string, token string, incident Incident) error 
 	return nil
 }
 
+//lint:ignore U1000 Ignore unused function temporarily for debugging
 func getIncidents(urlIncident string, token string) ([]Incident, error) {
 	ctx := log.WithFields(log.Fields{
 		"file":     "main.go",
@@ -286,6 +286,10 @@ func getIncidents(urlIncident string, token string) ([]Incident, error) {
 	req.Header.Add("Authorization", "Bearer "+token)
 
 	resp, err = client.Do(req)
+	if err != nil {
+		// fmt.Println("Error with the API Request")
+		return nil, err
+	}
 
 	rawData, err := io.ReadAll(resp.Body)
 	if err != nil {
